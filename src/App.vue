@@ -2,20 +2,28 @@
   <div ref="mapContainer" class="w-screen h-screen bg-slate-800"></div>
 </template>
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, reactive } from 'vue'
 import { overpassJson } from 'overpass-ts'
-import { useGeolocation } from '@vueuse/core'
 import '../node_modules/mapbox-gl/dist/mapbox-gl.css'
 import mapboxgl from 'mapbox-gl';
 mapboxgl.accessToken =
   'pk.eyJ1IjoiaGFsZmRvbGxhbnVnZ2V0IiwiYSI6ImNscmhvbWJqYjAxMGwyanBoNWNkMmE2ZmwifQ.yxvy-dtPE7IhptLxXlJdUg';
 
 const mapContainer = ref(null)
-const { coords, locatedAt, error, resume, pause } = useGeolocation()
-resume()
+const coords = reactive({
+  lat: 0 as number,
+  lon: 0 as number
+})
 
 onMounted(() => {
-  console.log(coords.value)
+  // USE WATCHPOSITION
+  navigator.geolocation.getCurrentPosition((position) => {
+    coords.lat = position.coords.latitude
+    coords.lon = position.coords.longitude
+    alert(`lat: ${coords.lat} lon: ${coords.lon}`)
+  }, (error) => {
+    alert(error.message)
+  })
   const geoJSON = {
     "type": "FeatureCollection",
     "features": [] as any[]
@@ -44,8 +52,8 @@ onMounted(() => {
   const map = new mapboxgl.Map({
     //@ts-ignore
     container: mapContainer.value,
-    style: 'mapbox://styles/mapbox/streets-v12', // Replace with your preferred map style
-    center: [-3.4716808, 56.075106],
+    style: 'mapbox://styles/mapbox/streets-v12',
+    center: [coords.lon, coords.lat],
     zoom: 9,
     attributionControl: false
   })
@@ -53,6 +61,7 @@ onMounted(() => {
   map.on('load', () => {
     map.addSource('stuff', {
       type: 'geojson',
+      //@ts-ignore
       data: geoJSON
     })
     map.addLayer({
