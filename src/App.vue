@@ -117,12 +117,31 @@ onMounted(() => {
         id: 'stuff-layer',
         type: 'circle',
         source: 'stuff',
+        /* layout: {
+          'icon-image': ['get', 'icon'],
+          'icon-allow-overlap': true
+        }, */
         paint: {
           "circle-radius": 4,
           "circle-stroke-width": 2,
           "circle-color": 'red',
           "circle-stroke-color": 'white'
         }
+      })
+      map.on('click', 'stuff-layer', (e: any) => {
+        const coordinates = e.features[0].geometry.coordinates
+        new mapboxgl.Popup()
+          .setLngLat(coordinates)
+          .addTo(map)
+      })
+
+      map.on('mouseenter', 'stuff-layer', () => {
+        map.getCanvas().style.cursor = 'pointer'
+      })
+      
+      // Change it back to a pointer when it leaves.
+      map.on('mouseleave', 'stuff-layer', () => {
+        map.getCanvas().style.cursor = ''
       })
     })
   })
