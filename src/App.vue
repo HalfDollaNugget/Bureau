@@ -48,6 +48,10 @@ const calcBBOX = (lat: number, lon: number, min: number, max: number) => {
     lat: {
       min: calcLat(lat, min).newLat,
       max: calcLat(lat, max).newLat
+    },
+    defaults: {
+      lon,
+      lat
     }
   }
 }
@@ -59,18 +63,18 @@ onMounted(() => {
   navigator.geolocation.getCurrentPosition((position) => {
     coords.lat = position.coords.latitude
     coords.lon = position.coords.longitude
-    const { lon, lat } = calcBBOX(56.0641195, -3.3909015, -500, 500)
-    //console.log(lon, lat)
-    console.log(`node(${lat.min}, ${lon.min}, ${lat.max}, ${lon.max});`)
+    const { lon, lat, defaults } = calcBBOX(56.0641195, -3.3909015, -500, 500)
+    //console.log(`node(${lat.min}, ${lon.min}, ${lat.max}, ${lon.max});`)
     overpassJson(`
     [out:json];
-    nwr["leisure"](${lat.min}, ${lon.min}, ${lat.max}, ${lon.max});
+    node["highway"="bus_stop"](${lat.min}, ${lon.min}, ${lat.max}, ${lon.max});
     out geom;
     `).then(data => {
+      //console.log(data.elements)
       data.elements.forEach(point => {
-        let coordinates = point.geometry.coordinates
+        let coordinates = [point.lon, point.lat]
         let properties = point
-        delete properties.geometry
+        //delete properties.geometry
         let feature = {
           "type": "Feature",
           "geometry": {
@@ -86,8 +90,8 @@ onMounted(() => {
       //@ts-ignore
       container: mapContainer.value,
       style: 'mapbox://styles/mapbox/dark-v11',
-      center: [coords.lon, coords.lat],
-      zoom: 10,
+      center: [defaults.lon, defaults.lat],
+      zoom: 16,
       attributionControl: false,
       logoPosition: 'bottom-left'
     }).addControl(
@@ -100,8 +104,8 @@ onMounted(() => {
       })
     )
     map.on('load', () => {
-      navigator.geolocation.watchPosition((position) => {
-        map.setCenter([position.coords.longitude + .1, position.coords.latitude + .1])
+      navigator.geolocation.getCurrentPosition((position) => {
+        map.setCenter([defaults.lon, defaults.lat])
       })
       console.log(geoJSON)
       map.addSource('stuff', {
