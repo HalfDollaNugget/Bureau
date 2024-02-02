@@ -12,6 +12,7 @@
     "@types/mapbox-gl": "^2.7.19",
     "@vueuse/core": "^10.7.2",
     "mapbox-gl": "^3.1.1",
+    "osmtogeojson": "^3.0.0-beta.5",
     "overpass-ts": "^4.3.8",
     "vue": "^3.4.13"
   },

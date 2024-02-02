@@ -6,7 +6,8 @@
 import { ref, onMounted, reactive } from 'vue'
 import { overpassJson } from 'overpass-ts'
 import '../node_modules/mapbox-gl/dist/mapbox-gl.css'
-import mapboxgl, { Map } from 'mapbox-gl';
+import mapboxgl, { Map } from 'mapbox-gl'
+import osmtogeojson from 'osmtogeojson'
 mapboxgl.accessToken = 'pk.eyJ1IjoiaGFsZmRvbGxhbnVnZ2V0IiwiYSI6ImNscmhvbWJqYjAxMGwyanBoNWNkMmE2ZmwifQ.yxvy-dtPE7IhptLxXlJdUg';
 
 const mapContainer = ref(null)
@@ -60,32 +61,23 @@ onMounted(() => {
     "type": "FeatureCollection",
     "features": [] as any[]
   }
+  let output = {}
   navigator.geolocation.getCurrentPosition((position) => {
     coords.lat = position.coords.latitude
     coords.lon = position.coords.longitude
     const { lon, lat, defaults } = calcBBOX(56.0641195, -3.3909015, -500, 500)
     //console.log(`node(${lat.min}, ${lon.min}, ${lat.max}, ${lon.max});`)
+    const parsedCoords = `${lat.min}, ${lon.min}, ${lat.max}, ${lon.max}`
     overpassJson(`
     [out:json];
-    node["highway"="bus_stop"](${lat.min}, ${lon.min}, ${lat.max}, ${lon.max});
+    (
+    //node["highway"="bus_stop"](${parsedCoords});
+    //node["highway"="stop"](${parsedCoords});
+    //node["highway"="stop"](${parsedCoords});
+    nwr["leisure"="playground"](${parsedCoords});
+    );
     out geom;
-    `).then(data => {
-      //console.log(data.elements)
-      data.elements.forEach(point => {
-        let coordinates = [point.lon, point.lat]
-        let properties = point
-        //delete properties.geometry
-        let feature = {
-          "type": "Feature",
-          "geometry": {
-            "type": "Point",
-            coordinates
-          },
-          properties
-        }
-        geoJSON.features.push(feature)
-      })
-    })
+    `).then(data => output = osmtogeojson(data))
     map = new mapboxgl.Map({
       //@ts-ignore
       container: mapContainer.value,
@@ -104,43 +96,47 @@ onMounted(() => {
       })
     )
     map.on('load', () => {
+      console.log(output)
       navigator.geolocation.getCurrentPosition((position) => {
         map.setCenter([defaults.lon, defaults.lat])
       })
-      console.log(geoJSON)
-      map.addSource('stuff', {
+      /* map.addSource('pois', {
         type: 'geojson',
         //@ts-ignore
-        data: geoJSON
+        data: output
       })
       map.addLayer({
-        id: 'stuff-layer',
+        id: 'pois-layer',
         type: 'circle',
-        source: 'stuff',
-        /* layout: {
-          'icon-image': ['get', 'icon'],
-          'icon-allow-overlap': true
-        }, */
+        source: 'pois',
         paint: {
           "circle-radius": 4,
           "circle-stroke-width": 2,
           "circle-color": 'red',
           "circle-stroke-color": 'white'
         }
+      }) */
+      map.addSource('areas', {
+        type: 'geojson',
+        //@ts-ignore
+        data: output
       })
-      map.on('click', 'stuff-layer', (e: any) => {
+      map.addLayer({
+        id: 'areas-layer',
+        type: 'fill',
+        source: 'areas',
+        paint: {
+          'fill-color': '#0080ff',
+          'fill-opacity': 0.5
+        }
+      })
+      map.on('click', 'areas-layer', (e: any) => {
         const coordinates = e.features[0].geometry.coordinates
-        new mapboxgl.Popup()
-          .setLngLat(coordinates)
-          .addTo(map)
       })
-
-      map.on('mouseenter', 'stuff-layer', () => {
+      map.on('mouseenter', 'areas-layer', () => {
         map.getCanvas().style.cursor = 'pointer'
       })
-      
-      // Change it back to a pointer when it leaves.
-      map.on('mouseleave', 'stuff-layer', () => {
+      map.on('mouseleave', 'areas-layer', () => {
         map.getCanvas().style.cursor = ''
       })
     })
