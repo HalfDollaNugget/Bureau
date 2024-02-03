@@ -66,15 +66,14 @@ onMounted(() => {
     coords.lat = position.coords.latitude
     coords.lon = position.coords.longitude
     const { lon, lat, defaults } = calcBBOX(56.0641195, -3.3909015, -500, 500)
-    //console.log(`node(${lat.min}, ${lon.min}, ${lat.max}, ${lon.max});`)
+    console.log(`node(${lat.min}, ${lon.min}, ${lat.max}, ${lon.max});`)
     const parsedCoords = `${lat.min}, ${lon.min}, ${lat.max}, ${lon.max}`
     overpassJson(`
     [out:json];
     (
-    //node["highway"="bus_stop"](${parsedCoords});
-    //node["highway"="stop"](${parsedCoords});
-    //node["highway"="stop"](${parsedCoords});
-    nwr["leisure"="playground"](${parsedCoords});
+      //way["landuse"="forest"](${parsedCoords});
+      //way["natural"="wood"](${parsedCoords});
+      way["natural"~"water|wood"](${parsedCoords});
     );
     out geom;
     `).then(data => output = osmtogeojson(data))
