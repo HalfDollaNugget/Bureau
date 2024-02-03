@@ -27,12 +27,17 @@ export const useMapStore = defineStore('map', {
         latitude: 0,
         longitude: 0
       }
+    },
+    tooltip: {
+      isShown: false,
+      data: {}
     }
   }),
   getters: {
     getMap: (state) => state.map,
     getOverpassQuery: (state) => state.overpassQuery,
     getOverpassOutput: (state) => state.overpassOutput,
+    isTooltipShown: (state) => state.tooltip.isShown,
   },
   actions: {
     async setMap(container: any) {
@@ -65,6 +70,13 @@ export const useMapStore = defineStore('map', {
           type: 'geojson',
           //@ts-ignore
           data: output
+        }).setFog({
+          "range": [0.8, 8],
+          "color": "#dc9f9f",
+          "horizon-blend": 0.5,
+          "high-color": "#245bde",
+          "space-color": "#000000",
+          "star-intensity": 0.15
         })
         this.map.addLayer({
           id: 'areas-layer',
@@ -74,15 +86,15 @@ export const useMapStore = defineStore('map', {
             'fill-color': '#0080ff',
             'fill-opacity': 0.5
           }
-        })
-        this.map.on('click', 'areas-layer', (e: any) => {
+        }).on('click', 'areas-layer', (e: any) => {
           const coordinates = e.features[0].geometry.coordinates
-        })
-        this.map.on('mouseenter', 'areas-layer', () => {
+          this.tooltip.isShown = !this.tooltip.isShown 
+        }).on('mouseenter', 'areas-layer', () => {
           this.map.getCanvas().style.cursor = 'pointer'
-        })
-        this.map.on('mouseleave', 'areas-layer', () => {
+          //this.map.setPaintProperty('areas-layer', 'fill-color', '#22e3f5')
+        }).on('mouseleave', 'areas-layer', () => {
           this.map.getCanvas().style.cursor = ''
+          //this.map.setPaintProperty('areas-layer', 'fill-color', '#0080ff')
         })
       })
     },

@@ -1,7 +1,10 @@
 <template>
   <div class="hidden absolute z-10 w-auto h-auto px-2 font-bold py-1 bg-slate-300 top-1 left-1 rounded-md">Clicko</div>
-  <!-- <div ref="mapContainer" class="flex flex-1 w-screen h-screen bg-slate-800"></div> -->
+  <!-- <div ref="mapContainer" class="flex w-screen h-screen bg-slate-800"></div> -->
   <div ref="mapContainer2" class="flex flex-1 w-screen h-screen bg-slate-800"></div>
+  <div class="absolute top-0 left-0 w-screen h-screen flex flex-1 pointer-events-none justify-center items-center z-50">
+    <div v-if="mapStore.isTooltipShown" class="w-2/3 h-4/5 bg-slate-700 rounded-md flex justify-center items-center pointer-events-auto cursor-pointer animate-showup"></div>
+  </div>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
