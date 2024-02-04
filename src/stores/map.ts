@@ -117,12 +117,15 @@ export const useMapStore = defineStore('map', {
             data: thisLayer.data
           })
           this.map.addLayer(layerOptions)
+            .on('contextmenu', layerId, (e: any) => {
+              console.log(e.features[0])
+            })
             .on('click', layerId, (e: any) => {
-              this.setTooltipState(true, e.features[0].properties)
-            }).on('mouseenter', layerId, () => {
-              this.map.getCanvas().style.cursor = 'pointer'
+              if (e.features[0].properties.name) this.setTooltipState(true, e.features[0].properties)
+            }).on('mouseenter', layerId, (e: any) => {
+              if (e.features[0].properties.name) this.map.getCanvas().style.cursor = 'pointer'
               //this.map.setPaintProperty('areas-layer', 'fill-color', '#22e3f5')
-            }).on('mouseleave', layerId, () => {
+            }).on('mouseleave', layerId, (e: any) => {
               this.map.getCanvas().style.cursor = ''
               //this.map.setPaintProperty('areas-layer', 'fill-color', '#0080ff')
             })

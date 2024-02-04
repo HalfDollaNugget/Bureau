@@ -2,9 +2,9 @@
   <div class="hidden absolute z-10 w-auto h-auto px-2 font-bold py-1 bg-slate-300 top-1 left-1 rounded-md">Clicko</div>
   <!-- <div ref="mapContainer" class="flex w-screen h-screen bg-slate-800"></div> -->
   <div ref="mapContainer2" class="flex flex-1 w-screen h-screen bg-slate-800"></div>
-  <div v-show="mapStore.isTooltipShown" @click="mapStore.setTooltipState(false, {})" class="absolute top-0 left-0 w-screen h-screen flex flex-1 bg-slate-700/50 justify-center items-center z-50 overflow-y-hidden">
+  <div v-show="mapStore.isTooltipShown" @click.self="mapStore.setTooltipState(false, {})" class="absolute top-0 left-0 w-screen h-screen flex flex-1 bg-slate-700/50 justify-center items-center z-50 overflow-y-hidden">
     <div v-if="mapStore.isTooltipShown" class="w-2/3 h-auto bg-slate-700 shadow-md rounded-md flex flex-col justify-center items-center pointer-events-auto cursor-pointer animate-showup overflow-y-auto text-slate-50">
-      <div class="px-4 py-2">{{ mapStore.tooltip.data.name }}</div>
+      <div v-show="mapStore.tooltip.data.name" class="px-4 py-2">{{ mapStore.tooltip.data.name }}</div>
     </div>
   </div>
 </template>
