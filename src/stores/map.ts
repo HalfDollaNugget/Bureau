@@ -30,8 +30,50 @@ export const useMapStore = defineStore('map', {
     },
     tooltip: {
       isShown: false,
-      data: {}
-    }
+      data: {} as any
+    },
+    layers: {
+      pois: {
+        name: 'pois',
+        query: `
+        [out:json];
+        nwr["highway"="bus_stop"]({{bbox}});
+        out geom;`,
+        options: {
+          id: 'pois-layer',
+          type: 'circle',
+          source: 'pois',
+          paint: {
+            'circle-color': '#11b4da',
+            'circle-radius': 4,
+            'circle-stroke-width': 1,
+            'circle-stroke-color': '#fff'
+          }
+        },
+        data: {}
+      },
+      geoms: {
+        name: 'geoms',
+        query: `
+        [out:json];
+        way["natural"~"water|wood"]({{bbox}});
+        out geom;
+        (
+        way["leisure"="playground"]({{bbox}});
+        );
+        out geom;`,
+        options: {
+          id: 'geoms-layer',
+          type: 'fill',
+          source: 'geoms',
+          paint: {
+            'fill-color': '#0080ff',
+            'fill-opacity': 0.5
+          },
+        },
+        data: {}
+      }
+    } as ILayerObj
   }),
   getters: {
     getMap: (state) => state.map,
@@ -51,7 +93,8 @@ export const useMapStore = defineStore('map', {
         zoom: 16,
         attributionControl: false,
         logoPosition: 'bottom-left'
-      }).addControl(
+      })
+      /* this.map.addControl(
         new mapboxgl.GeolocateControl({
           positionOptions: {
             enableHighAccuracy: true,
@@ -59,43 +102,31 @@ export const useMapStore = defineStore('map', {
           trackUserLocation: true,
           showUserHeading: true,
         })
-      )
+      ) */
       this.map.on('load', async () => {
-        let output = {} as any
-        await this.fetchOverpass().then((data) => output = data)
-        console.log(output)
         const { longitude, latitude } = this.bbox.default
         this.map.setCenter([longitude, latitude])
-        this.map.addSource('areas', {
-          type: 'geojson',
-          //@ts-ignore
-          data: output
-        }).setFog({
-          "range": [0.8, 8],
-          "color": "#dc9f9f",
-          "horizon-blend": 0.5,
-          "high-color": "#245bde",
-          "space-color": "#000000",
-          "star-intensity": 0.15
-        })
-        this.map.addLayer({
-          id: 'areas-layer',
-          type: 'fill',
-          source: 'areas',
-          paint: {
-            'fill-color': '#0080ff',
-            'fill-opacity': 0.5
-          }
-        }).on('click', 'areas-layer', (e: any) => {
-          const coordinates = e.features[0].geometry.coordinates
-          this.tooltip.isShown = !this.tooltip.isShown 
-        }).on('mouseenter', 'areas-layer', () => {
-          this.map.getCanvas().style.cursor = 'pointer'
-          //this.map.setPaintProperty('areas-layer', 'fill-color', '#22e3f5')
-        }).on('mouseleave', 'areas-layer', () => {
-          this.map.getCanvas().style.cursor = ''
-          //this.map.setPaintProperty('areas-layer', 'fill-color', '#0080ff')
-        })
+        for (const layer in this.layers) {
+          const thisLayer = this.layers[layer]
+          const layerName = thisLayer.name
+          const layerId = thisLayer.options.id
+          const layerOptions = thisLayer.options
+          await this.fetchLayer(thisLayer).then((data) => thisLayer.data = data)
+          this.map.addSource(layerName, {
+            type: 'geojson',
+            data: thisLayer.data
+          })
+          this.map.addLayer(layerOptions)
+            .on('click', layerId, (e: any) => {
+              this.setTooltipState(true, e.features[0].properties)
+            }).on('mouseenter', layerId, () => {
+              this.map.getCanvas().style.cursor = 'pointer'
+              //this.map.setPaintProperty('areas-layer', 'fill-color', '#22e3f5')
+            }).on('mouseleave', layerId, () => {
+              this.map.getCanvas().style.cursor = ''
+              //this.map.setPaintProperty('areas-layer', 'fill-color', '#0080ff')
+            })
+        }
       })
     },
     getCurrentPosition() {
@@ -103,6 +134,7 @@ export const useMapStore = defineStore('map', {
         navigator.geolocation.getCurrentPosition((position) => {
           this.currentPosition.latitude = position.coords.latitude
           this.currentPosition.longitude = position.coords.longitude
+          this.calcBBOX(this.currentPosition.latitude, this.currentPosition.longitude, -1000, 1000)
           resolve(this.currentPosition)
         })
       })
@@ -150,27 +182,33 @@ export const useMapStore = defineStore('map', {
         return this.bbox
     },
     prepareCoordsForOverpassQuery() {
-      const { longitude, latitude } = this.calcBBOX(this.currentPosition.latitude, this.currentPosition.longitude, -500, 500)
+      const { longitude, latitude } = this.calcBBOX(this.currentPosition.latitude, this.currentPosition.longitude, -1000, 1000)
       return `${latitude.min}, ${longitude.min}, ${latitude.max}, ${longitude.max}`
     },
-    async fetchOverpass() {
+    async fetchLayer(layer: ILayer) {
       const parsedCoords = this.prepareCoordsForOverpassQuery()
       return new Promise(async (resolve) => {
-        await overpassJson(`
-        [out:json];
-        (
-          //way["landuse"="forest"](${parsedCoords});
-          //way["natural"="wood"](${parsedCoords});
-          way["natural"~"water|wood"](${parsedCoords});
-          //nwr["highway"="bus_stop"](${parsedCoords});
-        );
-        out geom;
-        `).then(data => {
+        await overpassJson(layer.query.replaceAll('{{bbox}}', parsedCoords)).then(data => {
           const parsedData = osmtogeojson(data)
-          this.overpassOutput = parsedData
+          layer.data = parsedData
           resolve(parsedData)
         })
       })
+    },
+    setTooltipState(isShown: boolean, data: any) {
+      this.tooltip.isShown = isShown
+      this.tooltip.data = data
     }
   }
 })
+
+export interface ILayer {
+  name: string
+  query: string
+  options: any
+  data: any 
+}
+
+export interface ILayerObj {
+  [name: string]: ILayer
+}
