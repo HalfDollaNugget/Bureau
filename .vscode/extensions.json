@@ -8,5 +8,9 @@
   },
   "editor.quickSuggestions": {
       "strings": true
-  }
+  },
+  "colorize.languages": [
+    "vue",
+    "javascript"
+  ]
 }

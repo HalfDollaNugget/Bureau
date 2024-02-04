@@ -43,10 +43,8 @@ export const useMapStore = defineStore('map', {
           type: 'circle',
           source: 'pois',
           paint: {
-            'circle-color': '#11b4da',
+            'circle-color': ['get', 'color'],
             'circle-radius': 4,
-            'circle-stroke-width': 1,
-            'circle-stroke-color': '#fff'
           }
         },
         data: {}
@@ -68,9 +66,9 @@ export const useMapStore = defineStore('map', {
           type: 'fill',
           source: 'geoms',
           paint: {
-            'fill-color': '#0080ff',
+            'fill-color': ['get', 'color'],
             'fill-opacity': 0.5
-          },
+          }
         },
         data: {}
       }
@@ -104,34 +102,8 @@ export const useMapStore = defineStore('map', {
           showUserHeading: true,
         })
       ) */
-      this.map.on('load', async () => {
-        const { longitude, latitude } = this.bbox.default
-        this.map.setCenter([longitude, latitude])
-        for (const layer in this.layers) {
-          const thisLayer = this.layers[layer]
-          const layerName = thisLayer.name
-          const layerId = thisLayer.options.id
-          const layerOptions = thisLayer.options
-          await this.fetchLayer(thisLayer).then((data) => thisLayer.data = data)
-          this.map.addSource(layerName, {
-            type: 'geojson',
-            data: thisLayer.data
-          })
-          this.map.addLayer(layerOptions)
-            .on('contextmenu', layerId, (e: any) => {
-              console.log(e.features[0])
-            })
-            .on('click', layerId, (e: any) => {
-              if (e.features[0].properties.name) this.setTooltipState(true, e.features[0].properties)
-            }).on('mouseenter', layerId, (e: any) => {
-              if (e.features[0].properties.name) this.map.getCanvas().style.cursor = 'pointer'
-              //this.map.setPaintProperty('areas-layer', 'fill-color', '#22e3f5')
-            }).on('mouseleave', layerId, (e: any) => {
-              this.map.getCanvas().style.cursor = ''
-              //this.map.setPaintProperty('areas-layer', 'fill-color', '#0080ff')
-            })
-        }
-      })
+      console.log('Setting Layers..')
+      this.setLayers()
     },
     getCurrentPosition() {
       return new Promise((resolve, reject) => {
@@ -199,6 +171,49 @@ export const useMapStore = defineStore('map', {
         })
       })
     },
+    setFeatureConfigsForLayerUse(data: any) {
+      data.features.forEach((feature: IFeature) => {
+        console.log(feature)
+        if (feature.geometry.type == 'Polygon') {
+          if (feature.properties.natural) feature.properties.color = '#0080ff'
+          else if (feature.properties.religion) feature.properties.color = '#3fd2a6'
+          else if (feature.properties.leisure) feature.properties.color = '#d24b71'
+        } else feature.properties.color = '#e48241'
+      })
+    },
+    async setLayers() {
+      this.map.on('load', async () => {
+        const { longitude, latitude } = this.bbox.default
+        this.map.setCenter([longitude, latitude])
+        for (const layer in this.layers) {
+          const thisLayer = this.layers[layer]
+          const layerName = thisLayer.name
+          const layerId = thisLayer.options.id
+          const layerOptions = thisLayer.options
+          await this.fetchLayer(thisLayer).then((data) => thisLayer.data = data)
+          this.setFeatureConfigsForLayerUse(thisLayer.data)
+          this.map.addSource(layerName, {
+            type: 'geojson',
+            data: thisLayer.data
+          })
+          this.map.addLayer(layerOptions)
+            .on('contextmenu', layerId, (e: any) => {
+              console.log(e.features[0])
+            })
+            .on('click', layerId, (e: any) => {
+              const feature: IFeature = e.features[0]
+              if (feature.properties.name) this.setTooltipState(true, e.features[0].properties)
+            }).on('mouseenter', layerId, (e: any) => {
+              if (e.features[0].properties.name) this.map.getCanvas().style.cursor = 'pointer'
+              //this.map.setPaintProperty('areas-layer', 'fill-color', '#22e3f5')
+            }).on('mouseleave', layerId, (e: any) => {
+              this.map.getCanvas().style.cursor = ''
+              //this.map.setPaintProperty('areas-layer', 'fill-color', '#0080ff')
+            })
+          //this.map.setPaintProperty(layerId, 'fill-color', '#0080ff')
+        }
+      })
+    },
     setTooltipState(isShown: boolean, data: any) {
       this.tooltip.isShown = isShown
       this.tooltip.data = data
@@ -215,4 +230,19 @@ export interface ILayer {
 
 export interface ILayerObj {
   [name: string]: ILayer
+}
+
+export interface IFeature {
+  id: string
+  type: string
+  geometry: {
+    type: string
+    coordinates: any[]
+  }
+  properties: {
+    [tag: string]: string
+  }
+  layerConfig: {
+    [x: string]: string | number
+  }
 }
