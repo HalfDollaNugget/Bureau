@@ -1,6 +1,5 @@
-import { type ref } from 'vue'
 import { defineStore } from "pinia"
-import mapboxgl, { Map }  from "mapbox-gl"
+import mapboxgl  from "mapbox-gl"
 import { overpassJson } from 'overpass-ts'
 import osmtogeojson from 'osmtogeojson'
 
