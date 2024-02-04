@@ -57,9 +57,11 @@ export const useMapStore = defineStore('map', {
         [out:json];
         way["natural"~"water|wood"]({{bbox}});
         out geom;
-        (
+
         way["leisure"="playground"]({{bbox}});
-        );
+        out geom;
+        
+        way["religion"]({{bbox}});
         out geom;`,
         options: {
           id: 'geoms-layer',
